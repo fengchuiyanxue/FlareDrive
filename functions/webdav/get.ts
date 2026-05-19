@@ -10,13 +10,23 @@ export async function handleRequestGet({
     onlyIf: request.headers,
     range: request.headers,
   });
+
   if (obj === null) return notFound();
-  if (!("body" in obj))
-    return new Response("Preconditions failed", { status: 412 });
+
+  if (!("body" in obj)) return new Response("Preconditions failed", { status: 412 });
 
   const headers = new Headers();
   obj.writeHttpMetadata(headers);
+
+  // —— 核心修复：强行注入 UTF-8 编码补丁 ——
+  let contentType = headers.get("Content-Type") || "";
+  if (contentType.includes("text/") && !contentType.includes("charset")) {
+    headers.set("Content-Type", `${contentType}; charset=utf-8`);
+  }
+  // —— 补丁结束 ——
+
   if (path.startsWith("_$flaredrive$/thumbnails/"))
     headers.set("Cache-Control", "max-age=31536000");
+
   return new Response(obj.body, { headers });
 }
