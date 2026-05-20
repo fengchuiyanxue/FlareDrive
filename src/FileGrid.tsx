@@ -35,21 +35,34 @@ function FileGrid({
   multiSelected,
   onMultiSelect,
   emptyMessage,
-  onFileClick, // 👉 新增：接收从 Main.tsx 传过来的点击事件
+  onFileClick,
+  // 👉 1. 接收从 Main 传来的视图模式
+  viewMode = "grid",
 }: {
   files: FileItem[];
   onCwdChange: (newCwd: string) => void;
   multiSelected: string[] | null;
   onMultiSelect: (key: string) => void;
   emptyMessage?: React.ReactNode;
-  onFileClick?: (fileKey: string) => boolean; // 👉 新增：定义类型，返回 boolean 表示是否已拦截
+  onFileClick?: (fileKey: string) => boolean;
+  // 👉 2. 声明类型
+  viewMode?: "grid" | "list"; 
 }) {
   return files.length === 0 ? (
-    emptyMessage
+    <>{emptyMessage}</>
   ) : (
     <Grid container sx={{ paddingBottom: "48px" }}>
       {files.map((file) => (
-        <Grid item key={file.key} xs={12} sm={6} md={4} lg={3} xl={2}>
+        <Grid
+          item
+          key={file.key}
+          // 👉 3. 核心变身魔法：如果是列表模式，所有屏幕尺寸下都占满整行（12列）；否则按网格排列
+          xs={12}
+          sm={viewMode === "list" ? 12 : 6}
+          md={viewMode === "list" ? 12 : 4}
+          lg={viewMode === "list" ? 12 : 3}
+          xl={viewMode === "list" ? 12 : 2}
+        >
           <ListItemButton
             selected={multiSelected?.includes(file.key)}
             onClick={() => {
@@ -58,11 +71,9 @@ function FileGrid({
               } else if (isDirectory(file)) {
                 onCwdChange(file.key + "/");
               } else {
-                // 👉 新增核心逻辑：如果是文件，先问问外层（Main）要不要拦截它
                 if (onFileClick && onFileClick(file.key)) {
-                  return; // 如果 Main.tsx 返回 true（说明是 txt 并且弹出了抽屉），就终止执行，不跳新页面
+                  return; 
                 }
-                // 否则（比如是图片、视频），继续走默认的新标签页打开逻辑
                 window.open(
                   `/webdav/${encodeKey(file.key)}`,
                   "_blank",
@@ -74,7 +85,12 @@ function FileGrid({
               e.preventDefault();
               onMultiSelect(file.key);
             }}
-            sx={{ userSelect: "none" }}
+            sx={{
+              userSelect: "none",
+              // 👉 4. 视觉优化：列表模式下加一条浅色底边框，让它看起来像个真正的标准列表
+              borderBottom: viewMode === "list" ? "1px solid #f0f0f0" : "none",
+              borderRadius: viewMode === "grid" ? 1 : 0, // 网格模式保留圆角
+            }}
           >
             <ListItemIcon>
               {file.customMetadata?.thumbnail ? (
