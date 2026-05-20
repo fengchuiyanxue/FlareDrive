@@ -7,8 +7,7 @@ import {
   Stack,
 } from "@mui/material";
 import React, { useState } from "react";
-
-import Header from "./Header";
+import Header, { ViewMode, SortMode } from "./Header"; // 👉 引入刚才定义的类型
 import Main from "./Main";
 import ProgressDialog from "./ProgressDialog";
 import { TransferQueueProvider } from "./app/transferQueue";
@@ -26,18 +25,33 @@ function App() {
   const [showProgressDialog, setShowProgressDialog] = React.useState(false);
   const [error, setError] = useState<Error | null>(null);
 
+  // 👉 新增全局控制状态：视图模式（默认网格）与排序模式（默认按时间）
+  const [viewMode, setViewMode] = useState<ViewMode>("grid");
+  const [sortMode, setSortMode] = useState<SortMode>("date");
+
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
       {globalStyles}
       <TransferQueueProvider>
         <Stack sx={{ height: "100%" }}>
+          {/* 👉 将状态与变更函数安全地传递给遥控器 Header */}
           <Header
             search={search}
             onSearchChange={(newSearch: string) => setSearch(newSearch)}
             setShowProgressDialog={setShowProgressDialog}
+            viewMode={viewMode}
+            setViewMode={setViewMode}
+            sortMode={sortMode}
+            setSortMode={setSortMode}
           />
-          <Main search={search} onError={setError} />
+          {/* 👉 将状态传递给接收端 Main（Main 拿到后会负责具体的排序并向下传递给 FileGrid） */}
+          <Main 
+            search={search} 
+            onError={setError} 
+            viewMode={viewMode}
+            sortMode={sortMode}
+          />
         </Stack>
         <Snackbar
           autoHideDuration={5000}
