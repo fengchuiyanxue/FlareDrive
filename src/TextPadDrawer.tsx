@@ -37,7 +37,6 @@ const TextPadDrawer = ({ open, setOpen, cwd, onUpload, editingFileName }: TextPa
         }
       }
     }
-    // 👉 加上这一行，强行让 Cloudflare 的 ESLint 闭嘴，允许顺利打包通过
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, editingFileName]);
 
@@ -83,7 +82,8 @@ const TextPadDrawer = ({ open, setOpen, cwd, onUpload, editingFileName }: TextPa
   return (
     <Drawer anchor="right" open={open} onClose={() => setOpen(false)}>
       <Box sx={{ width: 400, padding: 3 }}>
-        <Box display="flex" justifyContent="space-between" Typography alignItems="center">
+        {/* 👉 就在下面这一行，已经去掉了多余的 Typography 单词 */}
+        <Box display="flex" justifyContent="space-between" alignItems="center">
           <Typography variant="h6">
             {editingFileName ? "编辑文件" : "新建 TextPad"}
           </Typography>
