@@ -14,6 +14,7 @@ function MultiSelectToolbar({
   onRename,
   onDelete,
   onShare,
+  onEdit, 
 }: {
   multiSelected: string[] | null;
   onClose: () => void;
@@ -21,6 +22,7 @@ function MultiSelectToolbar({
   onRename: () => void;
   onDelete: () => void;
   onShare: () => void;
+  onEdit: () => void; 
 }) {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
@@ -43,9 +45,7 @@ function MultiSelectToolbar({
         </IconButton>
         <IconButton
           color="primary"
-          disabled={
-            multiSelected?.length !== 1 || multiSelected[0].endsWith("/")
-          }
+          disabled={multiSelected?.length !== 1 || multiSelected[0].endsWith("/")}
           onClick={onDownload}
         >
           <DownloadIcon />
@@ -55,9 +55,7 @@ function MultiSelectToolbar({
         </IconButton>
         <IconButton
           color="primary"
-          disabled={
-            multiSelected?.length !== 1 || multiSelected[0].endsWith("/")
-          }
+          disabled={multiSelected?.length !== 1 || multiSelected[0].endsWith("/")}
           onClick={(e) => setAnchorEl(e.currentTarget)}
         >
           <MoreHorizIcon />
@@ -70,8 +68,32 @@ function MultiSelectToolbar({
           >
             {multiSelected.length === 1 && (
               <React.Fragment>
-                <MenuItem onClick={onRename}>Rename</MenuItem>
-                <MenuItem onClick={onShare}>Share</MenuItem>
+                {multiSelected[0].toLowerCase().endsWith(".txt") && (
+                  <MenuItem
+                    onClick={() => {
+                      setAnchorEl(null); 
+                      onEdit();          
+                    }}
+                  >
+                    Edit
+                  </MenuItem>
+                )}
+                <MenuItem
+                  onClick={() => {
+                    setAnchorEl(null);
+                    onRename();
+                  }}
+                >
+                  Rename
+                </MenuItem>
+                <MenuItem
+                  onClick={() => {
+                    setAnchorEl(null);
+                    onShare();
+                  }}
+                >
+                  Share
+                </MenuItem>
               </React.Fragment>
             )}
           </Menu>
