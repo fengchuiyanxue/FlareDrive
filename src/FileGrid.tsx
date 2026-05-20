@@ -35,12 +35,14 @@ function FileGrid({
   multiSelected,
   onMultiSelect,
   emptyMessage,
+  onFileClick, // 👉 新增：接收从 Main.tsx 传过来的点击事件
 }: {
   files: FileItem[];
   onCwdChange: (newCwd: string) => void;
   multiSelected: string[] | null;
   onMultiSelect: (key: string) => void;
   emptyMessage?: React.ReactNode;
+  onFileClick?: (fileKey: string) => boolean; // 👉 新增：定义类型，返回 boolean 表示是否已拦截
 }) {
   return files.length === 0 ? (
     emptyMessage
@@ -55,12 +57,18 @@ function FileGrid({
                 onMultiSelect(file.key);
               } else if (isDirectory(file)) {
                 onCwdChange(file.key + "/");
-              } else
+              } else {
+                // 👉 新增核心逻辑：如果是文件，先问问外层（Main）要不要拦截它
+                if (onFileClick && onFileClick(file.key)) {
+                  return; // 如果 Main.tsx 返回 true（说明是 txt 并且弹出了抽屉），就终止执行，不跳新页面
+                }
+                // 否则（比如是图片、视频），继续走默认的新标签页打开逻辑
                 window.open(
                   `/webdav/${encodeKey(file.key)}`,
                   "_blank",
                   "noopener,noreferrer"
                 );
+              }
             }}
             onContextMenu={(e) => {
               e.preventDefault();
