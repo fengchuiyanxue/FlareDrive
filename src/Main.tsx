@@ -105,9 +105,14 @@ function DropZone({
 function Main({
   search,
   onError,
+  // 👉 1. 接收 App 传过来的视图和排序模式
+  viewMode = "grid", 
+  sortMode = "date",
 }: {
   search: string;
   onError: (error: Error) => void;
+  viewMode?: "grid" | "list";
+  sortMode?: "name" | "date" | "size";
 }) {
   const [cwd, setCwd] = useState("");
   const [files, setFiles] = useState<FileItem[]>([]);
@@ -151,16 +156,39 @@ function Main({
     }
   }, [fetchFiles, lastUploadKey, transferQueue]);
 
-  const filteredFiles = useMemo(
-    () =>
-      (search
-        ? files.filter((file) =>
-            file.key.toLowerCase().includes(search.toLowerCase())
-          )
-        : files
-      ).sort((a, b) => (isDirectory(a) ? -1 : isDirectory(b) ? 1 : 0)),
-    [files, search]
-  );
+  // 👉 2. 核心算法：在这里执行真正的排序逻辑
+  const filteredFiles = useMemo(() => {
+    let result = search
+      ? files.filter((file) =>
+          file.key.toLowerCase().includes(search.toLowerCase())
+        )
+      : [...files];
+
+    result.sort((a, b) => {
+      const isDirA = isDirectory(a);
+      const isDirB = isDirectory(b);
+      
+      // 规则1：文件夹永远排在最前面
+      if (isDirA && !isDirB) return -1;
+      if (!isDirA && isDirB) return 1;
+
+      // 规则2：同类型的情况下，按用户的 sortMode 排序
+      if (sortMode === "name") {
+        const nameA = a.key.replace(/\/$/, "").split("/").pop()?.toLowerCase() || "";
+        const nameB = b.key.replace(/\/$/, "").split("/").pop()?.toLowerCase() || "";
+        return nameA.localeCompare(nameB);
+      } else if (sortMode === "size") {
+        return (b.size || 0) - (a.size || 0); // 文件大小：从大到小
+      } else {
+        // 默认按 date 时间排序：最新的排在前面
+        const dateA = new Date(a.uploaded).getTime();
+        const dateB = new Date(b.uploaded).getTime();
+        return dateB - dateA;
+      }
+    });
+
+    return result;
+  }, [files, search, sortMode]);
 
   const handleMultiSelect = useCallback((key: string) => {
     setMultiSelected((prev) => {
@@ -195,6 +223,8 @@ function Main({
             multiSelected={multiSelected}
             onMultiSelect={handleMultiSelect}
             emptyMessage={<Centered>No files or folders</Centered>}
+            // 👉 3. 把视图模式传给前线的士兵（FileGrid）
+            viewMode={viewMode}
           />
         </DropZone>
       )}
