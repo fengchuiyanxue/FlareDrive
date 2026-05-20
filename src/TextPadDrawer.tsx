@@ -43,10 +43,19 @@ const TextPadDrawer = ({ open, setOpen, cwd, onUpload, editingFileName }: TextPa
   const fetchOriginalContent = async (fileName: string) => {
     setLoading(true);
     try {
-      const filePath = `${cwd === "/" ? "" : cwd}/${fileName}`;
-      const targetUrl = `${encodeURI(`/webdav${filePath}`)}?t=${Date.now()}`;
+      // 👉 优化：确保路径正确，兼容根目录和子文件夹
+      const safeCwd = cwd.endsWith("/") ? cwd : (cwd ? cwd + "/" : "");
+      const fileKey = `${safeCwd}${fileName}`;
+
+      // 将路径中可能存在的中文或空格进行标准化 URL 编码
+      const encodedKey = fileKey.split("/").map(encodeURIComponent).join("/");
+      const targetUrl = `/webdav/${encodedKey}`;
       
-      const response = await fetch(targetUrl);
+      // 👉 核心修复：去掉了 URL 后面的 ?t=xxx，改用标准 cache 属性绕过缓存
+      const response = await fetch(targetUrl, {
+        cache: "no-store", // 强制浏览器每次都向服务器请求最新内容
+      });
+
       if (response.ok) {
         const text = await response.text();
         setNoteContent(text);
@@ -82,7 +91,6 @@ const TextPadDrawer = ({ open, setOpen, cwd, onUpload, editingFileName }: TextPa
   return (
     <Drawer anchor="right" open={open} onClose={() => setOpen(false)}>
       <Box sx={{ width: 400, padding: 3 }}>
-        {/* 👉 就在下面这一行，已经去掉了多余的 Typography 单词 */}
         <Box display="flex" justifyContent="space-between" alignItems="center">
           <Typography variant="h6">
             {editingFileName ? "编辑文件" : "新建 TextPad"}
