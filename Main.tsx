@@ -9,7 +9,6 @@ import {
   Typography,
 } from "@mui/material";
 import { Home as HomeIcon, NoteAdd as NoteAddIcon } from "@mui/icons-material";
-
 import FileGrid, { encodeKey, FileItem, isDirectory } from "./FileGrid";
 import MultiSelectToolbar from "./MultiSelectToolbar";
 import UploadDrawer, { UploadFab } from "./UploadDrawer";
@@ -42,7 +41,6 @@ function PathBreadcrumb({
   onCwdChange: (newCwd: string) => void;
 }) {
   const parts = path.replace(/\/$/, "").split("/");
-
   return (
     <Breadcrumbs separator="›" sx={{ padding: 1 }}>
       <Button onClick={() => onCwdChange("")} sx={{ minWidth: 0, padding: 0 }}>
@@ -120,10 +118,12 @@ function Main({
   const [files, setFiles] = useState<FileItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [multiSelected, setMultiSelected] = useState<string[] | null>(null);
+
   const [showUploadDrawer, setShowUploadDrawer] = useState(false);
   const [showTextPadDrawer, setShowTextPadDrawer] = useState(false);
-  const [lastUploadKey, setLastUploadKey] = useState<string | null>(null);
+  const [editingFileName, setEditingFileName] = useState<string | null>(null); // 新增：记录当前编辑的文件名
 
+  const [lastUploadKey, setLastUploadKey] = useState<string | null>(null);
   const transferQueue = useTransferQueue();
   const uploadEnqueue = useUploadEnqueue();
 
@@ -138,7 +138,6 @@ function Main({
   }, [cwd, onError]);
 
   useEffect(() => setLoading(true), [cwd]);
-
   useEffect(() => {
     fetchFiles();
   }, [fetchFiles]);
@@ -198,6 +197,18 @@ function Main({
             multiSelected={multiSelected}
             onMultiSelect={handleMultiSelect}
             emptyMessage={<Centered>No files or folders</Centered>}
+            // 新增：向 FileGrid 传递文件点击事件
+            onFileClick={(fileKey: string) => {
+              if (fileKey.toLowerCase().endsWith(".txt")) {
+                const fileName = fileKey.split("/").pop();
+                if (fileName) {
+                  setEditingFileName(fileName);
+                  setShowTextPadDrawer(true);
+                  return true; // 返回 true 告知 FileGrid 已拦截该点击
+                }
+              }
+              return false;
+            }}
           />
         </DropZone>
       )}
@@ -214,7 +225,10 @@ function Main({
               right: 24,
               zIndex: 999,
             }}
-            onClick={() => setShowTextPadDrawer(true)}
+            onClick={() => {
+              setEditingFileName(null); // 新增：点击右下角按钮时，清空当前文件名，进入“新建”模式
+              setShowTextPadDrawer(true);
+            }}
           >
             Open TextPad
           </Button>
@@ -228,11 +242,13 @@ function Main({
         onUpload={fetchFiles}
       />
 
+      {/* 传入 editingFileName */}
       <TextPadDrawer
         open={showTextPadDrawer}
         setOpen={setShowTextPadDrawer}
         cwd={cwd}
         onUpload={fetchFiles}
+        editingFileName={editingFileName} 
       />
 
       <MultiSelectToolbar
@@ -259,8 +275,11 @@ function Main({
             .join("\n");
           const confirmMessage = "Delete the following file(s) permanently?";
           if (!window.confirm(`${confirmMessage}\n${filenames}`)) return;
+
           for (const key of multiSelected)
-            await fetch(`/webdav/${encodeKey(key)}`, { method: "DELETE" });
+            await fetch(`/webdav/${encodeKey(key)}`, {
+              method: "DELETE",
+            });
           fetchFiles();
         }}
         onShare={() => {
